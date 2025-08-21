@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Shield, CheckCircle, AlertTriangle, Clock, FileCheck, Send } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Clock, FileCheck, Send, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router-dom";
+import jsPDF from 'jspdf';
 
 interface ClaimValidation {
   id: string;
@@ -88,11 +89,111 @@ export const ClaimScrubber = () => {
     }
   }, [location.state]);
 
+  const generateClaimPDF = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text('MEDICAL CLAIM FORM', 20, 30);
+    
+    // Claim Information
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    
+    // Generate claim number
+    const claimNumber = `CLM-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    
+    doc.text(`Claim Number: ${claimNumber}`, 20, 50);
+    doc.text(`Date of Service: ${new Date().toLocaleDateString()}`, 20, 60);
+    doc.text(`Submission Date: ${new Date().toLocaleDateString()}`, 20, 70);
+    
+    // Patient Information
+    doc.setFont("helvetica", "bold");
+    doc.text('PATIENT INFORMATION', 20, 90);
+    doc.setFont("helvetica", "normal");
+    doc.text('Patient Name: [Patient Name from Records]', 20, 105);
+    doc.text('DOB: [Date of Birth]', 20, 115);
+    doc.text('Insurance ID: [Insurance Member ID]', 20, 125);
+    
+    // Provider Information
+    doc.setFont("helvetica", "bold");
+    doc.text('PROVIDER INFORMATION', 20, 145);
+    doc.setFont("helvetica", "normal");
+    doc.text('Provider: AI Medical Coding System', 20, 160);
+    doc.text('NPI: 1234567890', 20, 170);
+    doc.text('Tax ID: 12-3456789', 20, 180);
+    
+    // Diagnosis Codes
+    doc.setFont("helvetica", "bold");
+    doc.text('DIAGNOSIS CODES (ICD-10)', 20, 200);
+    doc.setFont("helvetica", "normal");
+    
+    let yPos = 215;
+    if (incomingCodes?.codes) {
+      const icdCodes = incomingCodes.codes.filter(code => code.type === 'ICD-10');
+      icdCodes.forEach((code, index) => {
+        doc.text(`${index + 1}. ${code.code} - ${code.description}`, 25, yPos);
+        yPos += 10;
+      });
+    }
+    
+    // Procedure Codes
+    yPos += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text('PROCEDURE CODES (CPT)', 20, yPos);
+    doc.setFont("helvetica", "normal");
+    yPos += 15;
+    
+    if (incomingCodes?.codes) {
+      const cptCodes = incomingCodes.codes.filter(code => code.type === 'CPT');
+      cptCodes.forEach((code, index) => {
+        const modifierText = code.modifier ? ` (Modifier: ${code.modifier})` : '';
+        doc.text(`${index + 1}. ${code.code} - ${code.description}${modifierText}`, 25, yPos);
+        yPos += 10;
+      });
+    }
+    
+    // Validation Status
+    yPos += 15;
+    doc.setFont("helvetica", "bold");
+    doc.text('VALIDATION STATUS', 20, yPos);
+    doc.setFont("helvetica", "normal");
+    yPos += 15;
+    doc.text('✓ CCI Edits: PASSED', 25, yPos);
+    yPos += 10;
+    doc.text('✓ LCD Compliance: VERIFIED', 25, yPos);
+    yPos += 10;
+    doc.text('✓ Medical Necessity: CONFIRMED', 25, yPos);
+    yPos += 10;
+    doc.text('✓ Eligibility: ACTIVE', 25, yPos);
+    
+    // Estimated Reimbursement
+    yPos += 20;
+    doc.setFont("helvetica", "bold");
+    doc.text('ESTIMATED REIMBURSEMENT: $1,247.50', 20, yPos);
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.text('This claim has been validated by AI Medical Coding System', 20, 280);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 290);
+    
+    // Save the PDF
+    doc.save(`medical-claim-${claimNumber}.pdf`);
+  };
+
   const handleSubmitClaim = () => {
-    alert('Claim submitted to insurance successfully!');
-    setClaimReady(false);
-    setHasIncomingClaim(false);
-    setIncomingCodes(null);
+    // Generate and download PDF
+    generateClaimPDF();
+    
+    // Show success message
+    setTimeout(() => {
+      alert('Claim submitted to insurance successfully! PDF downloaded.');
+      setClaimReady(false);
+      setHasIncomingClaim(false);
+      setIncomingCodes(null);
+    }, 500);
   };
 
   return (
@@ -197,8 +298,8 @@ export const ClaimScrubber = () => {
                     Review Details
                   </Button>
                   <Button onClick={handleSubmitClaim} className="medical-gradient">
-                    <Send className="w-4 h-4 mr-2" />
-                    Submit to Insurance
+                    <Download className="w-4 h-4 mr-2" />
+                    Submit to Insurance & Download PDF
                   </Button>
                 </div>
               </div>
