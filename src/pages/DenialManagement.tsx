@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import jsPDF from 'jspdf';
 
 const denialMetrics = {
   totalDenials: 89,
@@ -74,6 +75,92 @@ const appealTemplates = [
 ];
 
 const DenialManagement = () => {
+  const handleResubmit = (item: any) => {
+    // Generate PDF for resubmission
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Claim Resubmission', 20, 20);
+    
+    // Claim details
+    doc.setFontSize(12);
+    doc.text(`Claim ID: ${item.id}`, 20, 40);
+    doc.text(`Patient: ${item.patient}`, 20, 50);
+    doc.text(`Estimated Value: ${item.estimatedValue}`, 20, 60);
+    doc.text(`Priority: ${item.priority.toUpperCase()}`, 20, 70);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 80);
+    
+    // Original denial
+    doc.text('Original Denial:', 20, 100);
+    doc.text(item.originalDenial, 20, 110);
+    
+    // Corrective action
+    doc.text('Corrective Action Taken:', 20, 130);
+    doc.text(item.action, 20, 140);
+    
+    // Download
+    doc.save(`resubmission-${item.id}.pdf`);
+  };
+
+  const handleProcessAll = () => {
+    // Generate batch PDF for all resubmissions
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('Batch Resubmission Report', 20, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Total Claims: ${resubmissionQueue.length}`, 20, 40);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 50);
+    
+    let yPos = 70;
+    resubmissionQueue.forEach((item, index) => {
+      doc.text(`${index + 1}. ${item.id} - ${item.patient} (${item.estimatedValue})`, 20, yPos);
+      yPos += 10;
+    });
+    
+    doc.save(`batch-resubmission-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handlePreviewTemplate = (template: any) => {
+    // Create a preview of the appeal letter template
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('Appeal Letter Template Preview', 20, 20);
+    
+    doc.setFontSize(14);
+    doc.text(template.name, 20, 40);
+    
+    doc.setFontSize(12);
+    doc.text(template.description, 20, 60);
+    doc.text(`Success Rate: ${template.successRate}`, 20, 80);
+    doc.text(`Times Used: ${template.useCount}`, 20, 90);
+    
+    // Open in new window
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+  };
+
+  const handleUseTemplate = (template: any) => {
+    // Generate appeal letter using template
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('Appeal Letter', 20, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Template: ${template.name}`, 20, 40);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 50);
+    
+    doc.text('Dear Insurance Review Team,', 20, 70);
+    doc.text('This letter serves as a formal appeal for the denied claim...', 20, 90);
+    doc.text(`Based on ${template.description}`, 20, 110);
+    
+    doc.save(`appeal-letter-${template.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -224,10 +311,13 @@ const DenialManagement = () => {
                         <p className="text-sm text-muted-foreground">Patient: {item.patient}</p>
                         <p className="text-xs text-muted-foreground">Value: {item.estimatedValue}</p>
                       </div>
-                      <Button className="success-gradient">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Resubmit
-                      </Button>
+                       <Button 
+                         className="success-gradient"
+                         onClick={() => handleResubmit(item)}
+                       >
+                         <RefreshCw className="w-4 h-4 mr-2" />
+                         Resubmit
+                       </Button>
                     </div>
                     
                     <div className="space-y-2">
@@ -244,10 +334,14 @@ const DenialManagement = () => {
                 </Card>
               ))}
               
-              <Button className="w-full medical-gradient" size="lg">
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Process All Resubmissions ({resubmissionQueue.length} claims)
-              </Button>
+               <Button 
+                 className="w-full medical-gradient" 
+                 size="lg"
+                 onClick={handleProcessAll}
+               >
+                 <RefreshCw className="w-5 h-5 mr-2" />
+                 Process All Resubmissions ({resubmissionQueue.length} claims)
+               </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -273,15 +367,23 @@ const DenialManagement = () => {
                           <span>Success rate: {template.successRate}</span>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          <FileText className="w-4 h-4 mr-1" />
-                          Preview
-                        </Button>
-                        <Button size="sm" className="medical-gradient">
-                          Use Template
-                        </Button>
-                      </div>
+                       <div className="flex space-x-2">
+                         <Button 
+                           variant="outline" 
+                           size="sm"
+                           onClick={() => handlePreviewTemplate(template)}
+                         >
+                           <FileText className="w-4 h-4 mr-1" />
+                           Preview
+                         </Button>
+                         <Button 
+                           size="sm" 
+                           className="medical-gradient"
+                           onClick={() => handleUseTemplate(template)}
+                         >
+                           Use Template
+                         </Button>
+                       </div>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div 
