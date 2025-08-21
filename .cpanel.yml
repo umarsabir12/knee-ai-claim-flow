@@ -1,4 +1,5 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/tronsdev/public_html/rcm-tool
-    - /bin/cp -R dist/* $DEPLOYPATH
+    - /bin/rm -rf $DEPLOYPATH/*
+    - /bin/cp -R build/* $DEPLOYPATH
