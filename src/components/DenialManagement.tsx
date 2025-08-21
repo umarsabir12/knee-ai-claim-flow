@@ -1,8 +1,11 @@
-import { AlertTriangle, TrendingDown, RefreshCw, FileText, BarChart3 } from "lucide-react";
+import { AlertTriangle, TrendingDown, RefreshCw, FileText, BarChart3, Download, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import jsPDF from 'jspdf';
 
 interface Denial {
   id: string;
@@ -81,9 +84,70 @@ const getStatusBadge = (status: Denial['status']) => {
 };
 
 export const DenialManagement = () => {
+  const [insuranceResponse, setInsuranceResponse] = useState('');
+  const [selectedDenialId, setSelectedDenialId] = useState<string | null>(null);
+  const [isRescrubbing, setIsRescrubbing] = useState<string | null>(null);
+  
   const readyToResubmit = denials.filter(d => d.status === 'ready-for-resubmission').length;
   const needsAppeal = denials.filter(d => d.status === 'appeal-required').length;
   const analyzing = denials.filter(d => d.status === 'analyzing').length;
+
+  const handleRescrub = async (denialId: string) => {
+    if (!insuranceResponse.trim()) return;
+    
+    setIsRescrubbing(denialId);
+    // Simulate AI processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsRescrubbing(null);
+    setInsuranceResponse('');
+    setSelectedDenialId(null);
+  };
+
+  const generateClaimPDF = (denial: Denial) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Medical Claim Resubmission', 20, 20);
+    
+    // Claim details
+    doc.setFontSize(12);
+    doc.text(`Claim ID: ${denial.id}`, 20, 40);
+    doc.text(`Patient: ${denial.patientName}`, 20, 50);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 60);
+    
+    // Original codes
+    doc.text('Original Codes:', 20, 80);
+    denial.originalCodes.forEach((code, index) => {
+      doc.text(`- ${code}`, 30, 90 + (index * 10));
+    });
+    
+    // Corrective codes
+    if (denial.correctiveCodes) {
+      doc.text('Corrective Codes:', 20, 110 + (denial.originalCodes.length * 10));
+      denial.correctiveCodes.forEach((code, index) => {
+        doc.text(`- ${code}`, 30, 120 + (denial.originalCodes.length * 10) + (index * 10));
+      });
+    }
+    
+    // Action taken
+    doc.text('Corrective Action:', 20, 150 + (denial.originalCodes.length * 10));
+    doc.text(denial.suggestedAction, 20, 160 + (denial.originalCodes.length * 10));
+    
+    return doc;
+  };
+
+  const handleDownload = (denial: Denial) => {
+    const doc = generateClaimPDF(denial);
+    doc.save(`resubmission-${denial.id}.pdf`);
+  };
+
+  const handleView = (denial: Denial) => {
+    const doc = generateClaimPDF(denial);
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+  };
 
   return (
     <Card className="clinical-card">
@@ -176,17 +240,88 @@ export const DenialManagement = () => {
                         )}
                       </div>
                       
+                      {/* Insurance Response Input */}
+                      {selectedDenialId === denial.id && (
+                        <div className="space-y-3 mt-4 p-4 bg-muted/50 border border-border rounded-lg">
+                          <label className="text-sm font-medium text-foreground">
+                            Insurance Company Response:
+                          </label>
+                          <Textarea 
+                            placeholder="Enter the insurance company's response or denial explanation..."
+                            value={insuranceResponse}
+                            onChange={(e) => setInsuranceResponse(e.target.value)}
+                            className="min-h-[100px]"
+                          />
+                          <div className="flex space-x-2">
+                            <Button 
+                              onClick={() => handleRescrub(denial.id)}
+                              disabled={!insuranceResponse.trim() || isRescrubbing === denial.id}
+                              className="flex-1"
+                            >
+                              {isRescrubbing === denial.id ? (
+                                <>
+                                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                  Rescrubbing...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                  Rescrub Claim
+                                </>
+                              )}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              onClick={() => {
+                                setSelectedDenialId(null);
+                                setInsuranceResponse('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
                       {denial.status === 'ready-for-resubmission' && (
-                        <Button className="w-full success-gradient">
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Prepare Resubmission
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={() => handleView(denial)}
+                            variant="outline" 
+                            className="flex-1"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Claim
+                          </Button>
+                          <Button 
+                            onClick={() => handleDownload(denial)}
+                            className="flex-1 success-gradient"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
                       )}
                       
-                      {denial.status === 'appeal-required' && (
-                        <Button variant="outline" className="w-full">
+                      {denial.status === 'appeal-required' && selectedDenialId !== denial.id && (
+                        <Button 
+                          onClick={() => setSelectedDenialId(denial.id)}
+                          variant="outline" 
+                          className="w-full"
+                        >
                           <FileText className="w-4 h-4 mr-2" />
-                          Generate Appeal Letter
+                          Enter Insurance Response
+                        </Button>
+                      )}
+
+                      {denial.status === 'analyzing' && selectedDenialId !== denial.id && (
+                        <Button 
+                          onClick={() => setSelectedDenialId(denial.id)}
+                          variant="outline" 
+                          className="w-full"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Add Insurance Response
                         </Button>
                       )}
                     </div>
