@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Coding from "./pages/Coding";
 import ClaimScrubbing from "./pages/ClaimScrubbing";
 import DenialManagement from "./pages/DenialManagement";
+import Reports from "./pages/Reports";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +41,9 @@ const App = () => (
                   <Route path="/coding" element={<Coding />} />
                   <Route path="/scrubbing" element={<ClaimScrubbing />} />
                   <Route path="/denials" element={<DenialManagement />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/settings" element={<Settings />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
