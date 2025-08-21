@@ -1,4 +1,4 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/tronsdev/rcm-tool-ai/
+    - export DEPLOYPATH=/home/tronsdev/public_html/knee-ai-claim-flow
     - /bin/cp -R * $DEPLOYPATH
