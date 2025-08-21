@@ -1,4 +1,4 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/tronsdev/knee-ai-claim-flow
+    - export DEPLOYPATH=/home/tronsdev/repos/knee-ai-claim-flow
     - /bin/cp -R * $DEPLOYPATH
