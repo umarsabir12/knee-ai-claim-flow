@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Brain, FileText, Code, CheckCircle } from "lucide-react";
+import { Brain, FileText, Code, CheckCircle, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
 
 interface MedicalCode {
   type: 'ICD-10' | 'CPT';
@@ -43,6 +44,7 @@ const generatedCodes: MedicalCode[] = [
 ];
 
 export const AIMedicalCoder = () => {
+  const navigate = useNavigate();
   const [providerNotes, setProviderNotes] = useState(sampleProviderNote);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
@@ -53,6 +55,16 @@ export const AIMedicalCoder = () => {
       setIsProcessing(false);
       setShowCodes(true);
     }, 2000);
+  };
+
+  const handleProceedToScrubber = () => {
+    navigate('/claim-scrubbing', {
+      state: {
+        codes: generatedCodes,
+        patientNotes: providerNotes,
+        generatedAt: new Date().toISOString()
+      }
+    });
   };
 
   return (
@@ -164,6 +176,17 @@ export const AIMedicalCoder = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   All codes verified for medical necessity and payer compliance
                 </p>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={handleProceedToScrubber}
+                  className="medical-gradient"
+                  size="lg"
+                >
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Proceed to Claim Scrubber
+                </Button>
               </div>
             </div>
           </div>

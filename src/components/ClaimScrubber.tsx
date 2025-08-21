@@ -1,8 +1,10 @@
-import { Shield, CheckCircle, AlertTriangle, Clock, FileCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Shield, CheckCircle, AlertTriangle, Clock, FileCheck, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
 
 interface ClaimValidation {
   id: string;
@@ -63,11 +65,148 @@ const getStatusBadge = (status: ClaimValidation['status']) => {
 };
 
 export const ClaimScrubber = () => {
+  const location = useLocation();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasIncomingClaim, setHasIncomingClaim] = useState(false);
+  const [claimReady, setClaimReady] = useState(false);
+  const [incomingCodes, setIncomingCodes] = useState(null);
+  
   const validatedCount = claimValidations.filter(c => c.status === 'validated').length;
   const flaggedCount = claimValidations.filter(c => c.status === 'flagged').length;
   const processingCount = claimValidations.filter(c => c.status === 'processing').length;
 
+  useEffect(() => {
+    if (location.state?.codes) {
+      setIncomingCodes(location.state);
+      setHasIncomingClaim(true);
+      // Auto-process the incoming claim
+      setIsProcessing(true);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setClaimReady(true);
+      }, 2000);
+    }
+  }, [location.state]);
+
+  const handleSubmitClaim = () => {
+    alert('Claim submitted to insurance successfully!');
+    setClaimReady(false);
+    setHasIncomingClaim(false);
+    setIncomingCodes(null);
+  };
+
   return (
+    <div className="space-y-6">
+      {/* Incoming Claim from AI Coder */}
+      {hasIncomingClaim && (
+        <Card className="clinical-card border-2 border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FileCheck className="w-5 h-5 text-primary" />
+              <span>Incoming Claim from AI Medical Coder</span>
+              {claimReady ? (
+                <Badge className="bg-success/10 text-success border-success/20">Ready for Submission</Badge>
+              ) : (
+                <Badge className="bg-clinical-blue/10 text-clinical-blue border-clinical-blue/20">Processing</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {incomingCodes && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-foreground mb-2 flex items-center">
+                    <Shield className="w-4 h-4 mr-2 text-clinical-blue" />
+                    ICD-10 Codes
+                  </h4>
+                  <div className="space-y-2">
+                    {incomingCodes.codes.filter(code => code.type === 'ICD-10').map((code, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-clinical-blue-light rounded">
+                        <div>
+                          <Badge variant="outline" className="text-clinical-blue border-clinical-blue mr-2">
+                            {code.code}
+                          </Badge>
+                          <span className="text-sm">{code.description}</span>
+                        </div>
+                        <CheckCircle className="w-4 h-4 text-success" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground mb-2 flex items-center">
+                    <FileCheck className="w-4 h-4 mr-2 text-clinical-green" />
+                    CPT Codes
+                  </h4>
+                  <div className="space-y-2">
+                    {incomingCodes.codes.filter(code => code.type === 'CPT').map((code, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-clinical-green-light rounded">
+                        <div>
+                          <Badge variant="outline" className="text-clinical-green border-clinical-green mr-2">
+                            {code.code}
+                          </Badge>
+                          {code.modifier && (
+                            <Badge variant="secondary" className="text-xs mr-2">
+                              {code.modifier}
+                            </Badge>
+                          )}
+                          <span className="text-sm">{code.description}</span>
+                        </div>
+                        <CheckCircle className="w-4 h-4 text-success" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {isProcessing && (
+              <div className="flex items-center justify-center p-6 bg-muted/30 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span className="text-sm text-muted-foreground">Validating claim against payer rules...</span>
+                </div>
+              </div>
+            )}
+
+            {claimReady && (
+              <div className="space-y-4">
+                <div className="p-4 bg-success/5 border border-success/20 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-success" />
+                    <span className="font-medium text-success">Claim Validation Complete</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="ml-2 font-medium text-success">Ready for Submission</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Payer Rules:</span>
+                      <span className="ml-2 font-medium text-success">All Passed</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Estimated Reimbursement:</span>
+                      <span className="ml-2 font-medium text-primary">$1,247.50</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3">
+                  <Button variant="outline">
+                    Review Details
+                  </Button>
+                  <Button onClick={handleSubmitClaim} className="medical-gradient">
+                    <Send className="w-4 h-4 mr-2" />
+                    Submit to Insurance
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
     <Card className="clinical-card">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
@@ -160,5 +299,6 @@ export const ClaimScrubber = () => {
         </Button>
       </CardContent>
     </Card>
+    </div>
   );
 };
