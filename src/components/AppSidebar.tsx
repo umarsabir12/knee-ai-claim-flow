@@ -3,6 +3,7 @@ import {
   Brain, 
   Shield, 
   TrendingDown,
+  DollarSign,
   Activity,
   FileText,
   Settings
@@ -46,6 +47,12 @@ const workflowItems = [
     url: "/denials", 
     icon: TrendingDown,
     description: "Denial Processing"
+  },
+  { 
+    title: "Account Receivable", 
+    url: "/accounts-receivable", 
+    icon: DollarSign,
+    description: "A/R Management"
   },
 ];
 
