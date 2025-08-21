@@ -58,7 +58,7 @@ export const AIMedicalCoder = () => {
   };
 
   const handleProceedToScrubber = () => {
-    navigate('/claim-scrubbing', {
+    navigate('/scrubbing', {
       state: {
         codes: generatedCodes,
         patientNotes: providerNotes,
